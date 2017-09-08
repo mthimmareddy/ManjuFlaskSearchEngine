@@ -4,6 +4,7 @@ import fnmatch
 from datetime import datetime
 path='C:/Users/rishi/Desktop/ManjuFlaskSearchEngine'
 from flask import Flask, render_template, Response, request, redirect, url_for
+import codecs
 app = Flask(__name__)
 
 
@@ -53,6 +54,8 @@ def my_form_post():
             
     elif int(option)==2:
         list1=text.split(",")
+        if(len(list1)<2):
+            list1.append(list1[0])
         result=searchbasedonfilecontent(list1[0],list1[1])
         if(result):
             return  render_template('Results.html')
@@ -142,63 +145,57 @@ def pdfreadder(file):
     number_of_pages = read_pdf.getNumPages()
     page = read_pdf.getPage(0)
     page_content = page.extractText()
-    print (page_content.encode('utf-8'))
+    print (page_content.encode('utf-8' ,error='ignore'))
     return page_content
 
 
        
 
 def searchbasedonfilecontent(pattern,filename):
-    #file=input('Enter the file in which pattern to be searched') 
+    
+    
     count_files=searchbasedonfilename(filename)
+    #count_files=result.split(";")
+    
     flag1=0
     
 
     if len(count_files):
-
-        for file in count_files:
-          if 'pdf' in file:
-            content=pdfreadder(file)
-            content=content.split(";")
-            with open('tem.txt','w') as f1:
-             for ele in content:
-              f1.write(ele)
-              f1.write('\n')
-            with open('tem.txt', 'r') as f2:
-             for line in f2.readlines():
-              match=re.search(pattern,line)
-              
-              if(match):
-                 flag1=1
-                 with open("temp.txt",'w') as f:
-                     f.write(line)
-                     
-    if len(count_files):
-           for file in count_files:
-               with open(file, 'r') as f2:
-                   for line in f2.readlines():
-                       match=re.search(pattern,line)
-                       if(match):
-                           flag1=1
-                           print (line)
-                           with open("temp.txt",'w') as f:
-                               f.write(line)
+        with codecs.open(path+"/temp.txt", "w+",encoding='utf-8', errors='ignore') as fdata:
                
-    if(flag1):
-        
-        with open("temp.txt",'r+') as f1:
+               for file in count_files:
+                   fdata.write("SEARCHING KEYWORD IN  FILE:{}\n".format(file))
+                   if 'pdf' in file:
+                    content=pdfreadder(file)
+                    content=content.split(";")
+                    with codecs.open(path+"/tem.txt", "w+",encoding='utf-8', errors='ignore') as f1:
+                     for ele in content:
+                          f1.write(ele)
+                          f1.write('\n')
+                     file=path+'/tem.txt'
+                   
+                   with codecs.open(file, 'r',encoding='utf-8', errors='ignore') as f2:
+                       for line in f2.readlines():
+                           match=re.search(pattern,line)
+                           if(match):
+                               flag1=1
+                               fdata.write(line)
+                       
+        if(flag1):
             with open(path+"/templates/Results.html",'w+') as f2:
-                f2.write('<h1>SEARCH OUTPUT BASED ON FILE CONTENT </h1><br><br>')
-                for line in f1.readline():
-                    f2.write(line)
-                    f2.write('\n')
+                    with codecs.open(path+"/temp.txt", "r+",encoding='utf-8', errors='ignore') as fdata:
                 
-                
-        return 1
+                        f2.write('<h1>SEARCH OUTPUT BASED ON FILE CONTENT </h1><br><br>')
+                        for line in fdata:
+                            f2.write('<p>{}</p>'.format(line))
+                            f2.write('\n')
+                        
+                    
+            return 1
 
     else: 
         
-        return 0
+        return 'File not found'
 
 
 def searchbasedondate(pattern):
