@@ -2,7 +2,7 @@ import os
 import re
 import fnmatch
 from datetime import datetime
-path='C:/Users/rishi/Desktop/Search_Engine'
+path='C:/Users/rishi/Desktop/ManjuFlaskSearchEngine'
 from flask import Flask, render_template, Response, request, redirect, url_for
 app = Flask(__name__)
 
@@ -44,6 +44,7 @@ def my_form_post():
     text = request.form['text']
     
     if int(option)==1:
+        
         result=searchbasedonfilename(text)
         if(result):
             return  render_template('Results.html')
@@ -51,11 +52,14 @@ def my_form_post():
             return "No Matches found"
             
     elif int(option)==2:
-        result=searchbasedontypeoffile(text)
+        list1=text.split(",")
+        result=searchbasedonfilecontent(list1[0],list1[1])
         if(result):
             return  render_template('Results.html')
         else:
             return "No Matches found"
+            
+        
             
     elif int(option)==3:
         result=searchbasedondate(text)
@@ -124,12 +128,12 @@ def searchbasedonfilename(pattern):
                  res+='/'+i
                 
                 linkUrl = 'file://'+res
-                linkText = '<a href="{{ url_for(results) }}">{}</a><br>'.format(item)
+                linkText = '<a href="{}">{}</a><br>'.format(linkUrl,item)
                 f.write(linkText)
                 
                 f.write('\n')
                 
-    return result
+    return match_files
        
 def pdfreadder(file):
     import PyPDF2
@@ -146,13 +150,13 @@ def pdfreadder(file):
 
 def searchbasedonfilecontent(pattern,filename):
     #file=input('Enter the file in which pattern to be searched') 
-    count=searchbasedonfilename(filename)
-   
-    
+    count_files=searchbasedonfilename(filename)
     flag1=0
-    print(count)
-    if count:
-        for file in count:
+    
+
+    if len(count_files):
+
+        for file in count_files:
           if 'pdf' in file:
             content=pdfreadder(file)
             content=content.split(";")
@@ -162,17 +166,15 @@ def searchbasedonfilecontent(pattern,filename):
               f1.write('\n')
             with open('tem.txt', 'r') as f2:
              for line in f2.readlines():
-              #rint(line)
               match=re.search(pattern,line)
-              #rint(match)
+              
               if(match):
                  flag1=1
-                 print(line)
                  with open("temp.txt",'w') as f:
                      f.write(line)
                      
-          else:
-           for file in count:
+    if len(count_files):
+           for file in count_files:
                with open(file, 'r') as f2:
                    for line in f2.readlines():
                        match=re.search(pattern,line)
@@ -182,17 +184,22 @@ def searchbasedonfilecontent(pattern,filename):
                            with open("temp.txt",'w') as f:
                                f.write(line)
                
-          if(flag1):
-             print('Pattern found')
-             return "temp.txt"
-          else:
-             print('Pattern Not found')
-             return None
-          
-                 
+    if(flag1):
+        
+        with open("temp.txt",'r+') as f1:
+            with open(path+"/templates/Results.html",'w+') as f2:
+                f2.write('<h1>SEARCH OUTPUT BASED ON FILE CONTENT </h1><br><br>')
+                for line in f1.readline():
+                    f2.write(line)
+                    f2.write('\n')
+                
+                
+        return 1
+
     else: 
-        print('File not found')
-        return None
+        
+        return 0
+
 
 def searchbasedondate(pattern):
     match_files=[]
@@ -201,28 +208,40 @@ def searchbasedondate(pattern):
     
     for root,dirs,files in os.walk(path):
         for directory in dirs:
-            ctime=datetime.fromtimestamp(os.path.getctime(directory)).strftime('%d-%m-%Y')
             path1=os.path.join(root,directory)
-            if (ctime==pattern):
+            ctime=datetime.fromtimestamp(os.path.getctime(path1)).strftime('%d-%m-%Y')
+            mtime=os.stat(path1).st_mtime
+            
+            if (ctime==pattern) or (mtime==pattern):
                 flag=1
                 match_files.append(path1)
            
         for name in files:
-            ctime=datetime.fromtimestamp(os.path.getctime(directory)).strftime('%d-%m-%Y')
-            path1=os.path.join(root,name)
+            path2=os.path.join(root,name)
+            ctime=datetime.fromtimestamp(os.path.getctime(path2)).strftime('%d-%m-%Y')
+            mtime=os.stat(path2).st_mtime
             
-            if (ctime==pattern):
+            if (ctime==pattern) or (mtime==pattern):
                 flag=1
-                #print("Name of file created on date {0}".format(path1))
                 match_files.append(path1)
                 
    
     if(flag):
+        
         for item in match_files:
                 result+=';'+item
         with open(path+"/templates/Results.html",'w+') as f:
+            f.write('<h1>SEARCH OUTPUT BASED ON CREATION/MODIFICATION DATE </h1><br><br>')
             for item in match_files:
-                f.write(item)
+                x=item.split('\\')
+                res=''
+                for i in x:
+                 res+='/'+i
+                
+                linkUrl = 'file://'+res
+                linkText = '<a href="{{ url_for(results) }}">{}</a><br>'.format(item)
+                f.write(linkText)
+                
                 f.write('\n')
                 
     return result
@@ -230,21 +249,46 @@ def searchbasedondate(pattern):
              
                 
 def searchbasedonsize(pattern):
-    count=[]
+    match_files=[]
+    result=''
+    flag=0
     
     for root,dirs,files in os.walk(path):
         for directory in dirs:
+            path1=os.path.join(root,directory)
             size=os.path.getsize(directory)
             if (size==pattern):
-                print("Folder is created on date {0}".format(directory))
+                #print("Folder is created on date {0}".format(directory))
+                flag=1
+                match_files.append(path1)
            
         for name in files:
             path1=os.path.join(root,name)
             size=os.path.getsize(path1)
             if (size==pattern):
-                print("Folder is created on date {0}".format(path1))
-                count.append(path1)
-    return count
+                #print("Folder is created on date {0}".format(path1))
+                match_files.append(path1)
+                flag=1
+    if(flag):
+        
+        for item in match_files:
+                result+=';'+item
+        with open(path+"/templates/Results.html",'w+') as f:
+            f.write('<h1>SEARCH OUTPUT BASED ON CREATION/MODIFICATION DATE </h1><br><br>')
+            for item in match_files:
+                x=item.split('\\')
+                res=''
+                for i in x:
+                 res+='/'+i
+                
+                linkUrl = 'file://'+res
+                linkText = '<a href="{{ url_for(results) }}">{}</a><br>'.format(item)
+                f.write(linkText)
+                
+                f.write('\n')
+                
+    return result
+           
 			
 def searchbasedontypeoffile(pattern):
     match_files=[]
