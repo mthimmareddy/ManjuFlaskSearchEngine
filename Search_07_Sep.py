@@ -279,7 +279,7 @@ def searchbasedonsize(pattern):
                  res+='/'+i
                 
                 linkUrl = 'file://'+res
-                linkText = '<a href="{{ url_for(results) }}">{}</a><br>'.format(item)
+                linkText = '<a href="{}">{}</a><br>'.format(linkUrl,item)
                 f.write(linkText)
                 
                 f.write('\n')
