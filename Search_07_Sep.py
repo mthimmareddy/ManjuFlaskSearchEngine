@@ -195,7 +195,7 @@ def searchbasedonfilecontent(pattern,filename):
 
     else: 
         
-        return 'File not found'
+        return 0
 
 
 def searchbasedondate(pattern):
